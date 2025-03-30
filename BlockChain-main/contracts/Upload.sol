@@ -18,20 +18,12 @@ contract Upload {
   mapping(string => FileCertificate[]) public fileCertificatesMap;
   mapping(string => FileCertificate) public allFileCertificates;
   FileCertificate[] public allallCert;
-  mapping(address => uint) public verifiers;
-  constructor() {
-        // Add initial issuers
-        verifiers[0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199] = 1;
-    }
 
   //declare an object that will store the file certificates by hash
   // mapping (string => FileCertificate) fileCertificatesMap;
 
   //function that allows users to certify a file
   function certifyFile(string memory _user, string memory fileHash, string memory url) public payable {
-
-    require(verifiers[msg.sender]==1, "You are not Authorised to issue Certificates");
-
     FileCertificate memory newFileCertificate = FileCertificate(_user,msg.sender, fileHash, block.timestamp, url);
 
     // fileCertificatesMap[user] = newFileCertificate;
@@ -56,12 +48,6 @@ contract Upload {
   function getFile(string memory account) public view returns (FileCertificate[] memory) {
     return (
       fileCertificatesMap[account]
-    );
-  }
-  function getAllCert() public view returns (FileCertificate[] memory) {
-    require(verifiers[msg.sender]==1, "You are not Authorised to see all Certificates");
-    return (
-      allallCert
     );
   }
 

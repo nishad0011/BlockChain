@@ -1,23 +1,32 @@
 import Upload from "../artifacts/contracts/Upload.sol/Upload.json";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { ethers } from "ethers";
+import { Contract, ethers } from "ethers";
+import "./FileUpload.css";
+import add from "./address.json" with { type: "json" };
 
 const FileUpload = () => {
   const [account, setAccount] = useState("");
+  const [user, setUser] = useState("");
   const [contract, setContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState("No image selected");
+  const [data, setData] = useState({});
+  const [fileName, setFileName] = useState("No Document selected");
 
+  const handleNameChange = async (e) => {
+    setUser(e.target.value);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (file) {
       try {
         const formData = new FormData();
         formData.append("file", file);
+        console.log(formData);
 
         const resFile = await axios({
           method: "post",
@@ -31,23 +40,21 @@ const FileUpload = () => {
         });
         const url = `https://tan-objective-cattle-479.mypinata.cloud/ipfs/${resFile.data.IpfsHash}`;
 
-        const r = contract.certifyFile(account, ImgHash);
-        alert(r);
-        console.log("Successfully Image Uploaded", resFile);
-        console.log("url", url);
-        setFileName("No image selected");
+        const r = await contract.certifyFile(user, resFile.data.IpfsHash, url);
+        alert("Certificate uploaded Successfully");
+        console.log("Certificate uploaded Successfully", r);
+        setFileName("No Document selected");
         setFile(null);
       } catch (e) {
-        alert(e);
+        alert(e.reason);
       }
     }
-    alert("Successfully Image Uploaded");
     setFileName("No image selected");
     setFile(null);
   };
   const retrieveFile = (e) => {
     const data = e.target.files[0]; //files array of files object
-    // console.log(data);
+    console.log(e.target);
     const reader = new window.FileReader();
     reader.readAsArrayBuffer(data);
     reader.onloadend = () => {
@@ -56,6 +63,26 @@ const FileUpload = () => {
     setFileName(e.target.files[0].name);
     e.preventDefault();
   };
+  const fun = async () => {
+    try {
+       const dta = await contract.getAllCert();
+    const formattedData = dta.map((cert) => ({
+      user: cert.user,
+      issuer: cert.issuer,
+      fileHash: cert.fileHash,
+      timestamp: new Date(Number(cert.timestamp) * 1000).toLocaleString(), // Convert BigInt timestamp
+      url: cert.url,
+    }));
+    setData(formattedData);
+    } catch (error) {
+      alert(error.reason);
+    }
+   
+  };
+  // useEffect(() => {
+
+  //   fun();
+  // }, [fileName]);
 
   useEffect(() => {
     const provider = new ethers.BrowserProvider(window.ethereum);
@@ -72,7 +99,7 @@ const FileUpload = () => {
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
         setAccount(address);
-        let contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+        let contractAddress = add["add"];
 
         const contract = new ethers.Contract(
           contractAddress,
@@ -90,36 +117,83 @@ const FileUpload = () => {
   }, []);
   return (
     <>
-      <div>Upload Certificate</div>
-      <p style={{ color: "red" }}>
-        Account : {account ? account : "Not connected"}
-      </p>
+      <div className="container">
+        <h1 className="h1s">Upload Certificates</h1>
+        <h2 className="cacc">
+          Current Account : {account ? account : "Not connected"}
+        </h2>
 
-      <div className="top">
-        <form className="form" onSubmit={handleSubmit}>
-          <label htmlFor="file-upload" className="choose">
-            Choose Image
-          </label>
-          <input
-            disabled={!account}
-            type="file"
-            id="file-upload"
-            name="data"
-            onChange={retrieveFile}
-          />
-          <span className="textArea">Image: {fileName}</span>
-          <button type="submit" className="upload" disabled={!file}>
-            Upload File
+        <div className="top">
+          <form className="form" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="file-upload" className="choose">
+                Choose Document
+              </label>
+              <input
+                disabled={!account}
+                type="file"
+                id="file-upload"
+                name="data"
+                onChange={retrieveFile}
+              />
+            </div>
+            <div>
+              <span className="textArea">Document: {fileName}</span>
+              <button className="btn" type="submit" disabled={!file}>
+                Upload File
+              </button>
+            </div>
+            <div>
+              <label htmlFor="name">Address:</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Enter address"
+                value={user}
+                onChange={handleNameChange}
+              />
+            </div>
+          </form>
+        </div>
+        <div className="certListHeader">
+          <span>Uploaded Certificates: (count:{data.length})</span>
+          <button className="btn" onClick={fun}>
+            Update List
           </button>
-          <br />
-          <label for="name">Name:</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            placeholder="Enter address"
-          />
-        </form>
+        </div>
+
+        {data.length > 0 ? (
+          data.map((cert, index) => (
+            <div className="entry">
+              <h3>Index {index + 1}</h3>
+              <div>
+                <div>Student Address :</div>
+                <div>{cert.user}</div>
+              </div>
+              <div>
+                <div>Issuer :</div>
+                <div>{cert.issuer}</div>
+              </div>
+              <div>
+                <div>Hash :</div>
+                <div>{cert.fileHash}</div>
+              </div>
+              <div>
+                <div>Creation Date :</div>
+                <div>{cert.timestamp}</div>
+              </div>
+              <div>
+                <div>Link :</div>
+                <a href={cert.url}>{cert.url}</a>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="entry">
+            <h3>No Certificates found</h3>
+          </div>
+        )}
       </div>
     </>
   );
