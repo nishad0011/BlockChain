@@ -65,15 +65,19 @@ const FileUpload = () => {
   };
   const fun = async () => {
     try {
-       const dta = await contract.getAllCert();
-    const formattedData = dta.map((cert) => ({
-      user: cert.user,
-      issuer: cert.issuer,
-      fileHash: cert.fileHash,
-      timestamp: new Date(Number(cert.timestamp) * 1000).toLocaleString(), // Convert BigInt timestamp
-      url: cert.url,
-    }));
-    setData(formattedData);
+      const dta = await contract.getAllCert();
+
+      if (!dta || !Array.isArray(dta)) {
+        throw new Error("Invalid data received from contract");
+      }
+      const formattedData = dta.map((cert) => ({
+        user: cert.user,
+        issuer: cert.issuer,
+        fileHash: cert.fileHash,
+        timestamp: new Date(Number(cert.timestamp) * 1000).toLocaleString(), // Convert BigInt timestamp
+        url: cert.url,
+      }));
+      setData(formattedData);
     } catch (error) {
       alert(error.reason);
     }
